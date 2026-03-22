@@ -17,44 +17,99 @@ Traditional incognito is dumb: no past, no future, fully isolated.
 pip install forgetted
 ```
 
-For recoverable trash deletion (recommended):
+With optional adapters:
 
 ```bash
-pip install forgetted[trash]
+pip install forgetted[trash]   # recoverable file deletion
 ```
 
-## Quick Start
+## Quick Start (30 seconds)
 
 ```python
-from forgetted import is_forget_trigger, ForgetGuard, create_checkpoint
+from forgetted import ForgetSession
 
-# Detect trigger in user message
-if is_forget_trigger(user_message):
-    # Save checkpoint before branching
-    create_checkpoint("Discussing API design for v2", workspace_path)
-    
-    # Block all writes to protected paths — fork without consequence
-    with ForgetGuard(workspace_path):
-        # ... agent runs with full context, but writes silently vanish ...
-        pass
-    
-    # After exiting: clean up session log
-    from forgetted import find_session_log, delete_session_log
-    log = find_session_log(session_id, agents_dir)
-    if log:
-        delete_session_log(log)
+# Everything inside the session is forgetted
+with ForgetSession("/path/to/workspace"):
+    # Agent runs with full context
+    # But writes to memory, logs, and deliverables silently vanish
+    agent.chat("tell me about the secret project")
+
+# Back to normal — no trace remains
+```
+
+## With Custom Adapters
+
+```python
+from forgetted import ForgetSession
+from forgetted.adapters.mem0 import Mem0Adapter
+
+# Register your persistence layers
+session = ForgetSession(
+    workspace="/path/to/workspace",
+    adapters=[Mem0Adapter(memory_instance, user_id="roli")],
+    session_id="abc-123",
+    agents_dir="~/.openclaw/agents/",
+)
+
+# Checkpoint before going dark (optional)
+session.start(checkpoint_summary="Discussing API design for v2")
+
+# ... forgetted conversation happens ...
+
+# Re-enable all layers, run cleanup sweep, delete session log
+session.stop(clean=True)
 ```
 
 ## What Gets Blocked
 
-| Layer | Status | Notes |
+| Layer | Adapter | Status |
 |---|---|---|
-| Memory files (`memory/*.md`) | ✅ Blocked | Daily logs, checkpoints |
-| Deliverables log | ✅ Blocked | Shared audit trail |
-| Session logs (`*.jsonl`) | ✅ Blocked + cleaned | Deleted on exit |
-| Vector DB (embeddings) | 🔜 v0.2 | mem0, chromadb |
-| Derived summaries | 🔜 v0.2 | Compaction outputs |
-| Tool output logs | 🔜 v0.2 | External tool traces |
+| Memory files (`memory/*.md`) | `FileWriteAdapter` (built-in) | ✅ Blocked |
+| Deliverables log | `FileWriteAdapter` (built-in) | ✅ Blocked |
+| Session logs (`*.jsonl`) | `FileWriteAdapter` + cleaner | ✅ Blocked + cleaned |
+| mem0 (semantic memory) | `Mem0Adapter` | ✅ Blocked + cleaned |
+| Your custom DB | Write your own adapter | 🔌 Extensible |
+
+## Architecture
+
+### ForgetSession (orchestrator)
+
+Coordinates multiple persistence adapters. Always includes `FileWriteAdapter` as the safety net.
+
+**Ordering contract for `stop()`:**
+1. Re-enable all adapters (restore normal writes)
+2. Run cleanup on each adapter (post-window sweep)
+3. Delete session log
+
+This ordering ensures cleanup code can write freely (e.g., `mem0.delete()`) because adapters are re-enabled first.
+
+### Adapter Pattern
+
+Every persistence layer implements a simple interface:
+
+```python
+from forgetted.adapters.base import PersistenceAdapter
+
+class MyAdapter(PersistenceAdapter):
+    name = "my-db"
+    is_active = False
+
+    def disable(self):   # Block writes
+    def enable(self):    # Restore writes
+    def cleanup(self):   # Post-window sweep
+```
+
+Built-in adapters:
+- **FileWriteAdapter** — patches `builtins.open` to block file writes (safety net)
+- **Mem0Adapter** — blocks `memory.add()` / `memory.update()`, cleans by timestamp
+
+### Threat Model
+
+**What forgetted blocks:** Everything the agent controls — memory files, vector DB writes, session logs, deliverables.
+
+**What forgetted does NOT block:** LLM API provider logs, network telemetry, OS-level forensics. That's not our scope.
+
+**The guarantee:** "If someone looks through the agent's memory and logs, they won't find what you didn't want them to find."
 
 ## The Test
 
@@ -67,28 +122,35 @@ Can the agent infer anything from that prior interaction?
 
 **If yes → we failed. If no → we built something real.**
 
-## How It Works
+## Write Your Own Adapter
 
-### ForgetGuard
+```python
+from forgetted.adapters.base import PersistenceAdapter
 
-Patches `builtins.open` to intercept writes to protected paths. Returns no-op file handles — agent code doesn't crash, writes just vanish. Reads are never blocked.
+class RedisAdapter(PersistenceAdapter):
+    def __init__(self, client):
+        self._client = client
+        self._active = False
+        self._blocked_keys = []
 
-### Checkpoint
+    @property
+    def name(self): return "redis"
 
-Before entering forgetted mode, saves a compact resumption file. On the next normal session, the checkpoint is loaded and consumed (single-use). This preserves continuity without the forgetted content.
+    @property
+    def is_active(self): return self._active
 
-### Cleaner
+    def disable(self):
+        self._client.config_set("save", "")  # disable persistence
+        self._active = True
 
-After the forgetted window ends, finds and removes the session log. Uses `send2trash` (OS trash, recoverable) if available, otherwise renames with `.deleted` suffix.
+    def enable(self):
+        self._client.config_set("save", "3600 1")  # restore
+        self._active = False
 
-## Components
-
-| Module | Purpose |
-|---|---|
-| `trigger` | Detect forgetted activation in user messages |
-| `guard` | Context manager that blocks file writes to protected paths |
-| `checkpoint` | Create and load resumption files |
-| `cleaner` | Find and safely delete session logs |
+    def cleanup(self):
+        for key in self._blocked_keys:
+            self._client.delete(key)
+```
 
 ## What This Really Is
 
@@ -96,7 +158,7 @@ This is not a UX feature. It's:
 
 - **A memory governance primitive** — user-controlled memory architecture for AI systems
 - **A fork without consequence** — like git: you branch, but you never merge back
-- **Controlling gradient flow across time** — preventing session state from shaping future behavior
+- **A standard, not just a library** — frameworks can implement the adapter interface natively
 
 ## License
 

@@ -13,6 +13,8 @@ TRIGGERS: list[str] = [
     "go off the record",
     "off the record",
     "forgetted mode",
+    "this is off the record",
+    "don't remember this",
 ]
 
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forgetted"
-version = "0.1.0"
+version = "0.2.0"
 description = "Selective memory governance for AI agents — branch the timeline, never merge back"
 readme = "README.md"
 license = {text = "Apache-2.0"}
