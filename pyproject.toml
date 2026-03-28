@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "forgetted"
 version = "0.2.0"
-description = "Selective memory governance for AI agents — branch the timeline, never merge back"
+description = "Selective memory governance for AI agents — branch the timeline, never merge back. By Hermes Labs."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9"
 authors = [
-    {name = "Hermes Labs", email = "lpcisystems@gmail.com"},
+    {name = "Hermes Labs", email = "roli@hermes-labs.ai"},
 ]
 keywords = ["llm", "agent", "memory", "privacy", "ai-safety", "fork", "selective-forget"]
 classifiers = [
@@ -38,6 +38,7 @@ dev = [
 [project.urls]
 Homepage = "https://hermes-labs.ai"
 Repository = "https://github.com/roli-lpci/forgetted"
+Documentation = "https://github.com/roli-lpci/forgetted#readme"
 Issues = "https://github.com/roli-lpci/forgetted/issues"
 Changelog = "https://github.com/roli-lpci/forgetted/blob/main/CHANGELOG.md"
 
