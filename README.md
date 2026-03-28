@@ -7,6 +7,7 @@
     <a href="https://github.com/roli-lpci/forgetted"><img src="https://img.shields.io/github/stars/roli-lpci/forgetted" alt="Stars"></a>
     <a href="https://github.com/roli-lpci/forgetted/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/forgetted" alt="License"></a>
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/pyversions/forgetted" alt="Python"></a>
+    <a href="https://github.com/roli-lpci/forgetted/actions/workflows/ci.yml"><img src="https://github.com/roli-lpci/forgetted/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   </p>
 </p>
 
@@ -186,6 +187,21 @@ Known limitations are [documented as xfail tests](tests/test_adversarial.py) —
 **What forgetted does NOT block:** LLM API provider logs, network telemetry, OS-level forensics. That's not the point.
 
 **The guarantee:** *"If someone looks through the agent's memory and logs, they won't find what you forgetted."*
+
+## Hermes Labs Ecosystem
+
+forgetted is part of the [Hermes Labs](https://hermes-labs.ai) open-source suite:
+
+- [**little-canary**](https://github.com/roli-lpci/little-canary) — Prompt injection detection
+- [**lintlang**](https://github.com/roli-lpci/lintlang) — Static linter for AI agent configs
+- [**zer0dex**](https://github.com/roli-lpci/zer0dex) — Dual-layer memory for AI agents
+- [**zer0lint**](https://github.com/roli-lpci/zer0lint) — mem0 extraction diagnostics
+- [**suy-sideguy**](https://github.com/roli-lpci/suy-sideguy) — Autonomous agent watchdog
+- [**quickthink**](https://github.com/roli-lpci/quickthink) — Planning scaffolding for local LLMs
+
+---
+
+If forgetted is useful to you, please [star the repo](https://github.com/roli-lpci/forgetted) — it helps others find it.
 
 ## License
 
