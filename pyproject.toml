@@ -31,7 +31,7 @@ dependencies = []
 trash = ["send2trash>=1.8.0"]
 dev = [
     "pytest>=7.0",
-    "pytest-cov>=4.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.1.0",
 ]
 
