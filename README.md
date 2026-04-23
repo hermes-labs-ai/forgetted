@@ -4,10 +4,10 @@
   <p align="center">
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/v/forgetted" alt="PyPI"></a>
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/dm/forgetted" alt="Downloads"></a>
-    <a href="https://github.com/roli-lpci/forgetted"><img src="https://img.shields.io/github/stars/roli-lpci/forgetted" alt="Stars"></a>
-    <a href="https://github.com/roli-lpci/forgetted/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/forgetted" alt="License"></a>
+    <a href="https://github.com/hermes-labs-ai/forgetted"><img src="https://img.shields.io/github/stars/hermes-labs-ai/forgetted" alt="Stars"></a>
+    <a href="https://github.com/hermes-labs-ai/forgetted/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/forgetted" alt="License"></a>
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/pyversions/forgetted" alt="Python"></a>
-    <a href="https://github.com/roli-lpci/forgetted/actions/workflows/ci.yml"><img src="https://github.com/roli-lpci/forgetted/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/hermes-labs-ai/forgetted/actions/workflows/ci.yml"><img src="https://github.com/hermes-labs-ai/forgetted/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   </p>
 </p>
 
@@ -201,7 +201,7 @@ forgetted is part of the [Hermes Labs](https://hermes-labs.ai) open-source suite
 
 ---
 
-If forgetted is useful to you, please [star the repo](https://github.com/roli-lpci/forgetted) — it helps others find it.
+If forgetted is useful to you, please [star the repo](https://github.com/hermes-labs-ai/forgetted) — it helps others find it.
 
 ## License
 

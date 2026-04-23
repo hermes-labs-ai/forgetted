@@ -36,10 +36,10 @@ dev = [
 
 [project.urls]
 Homepage = "https://hermes-labs.ai"
-Repository = "https://github.com/roli-lpci/forgetted"
-Documentation = "https://github.com/roli-lpci/forgetted#readme"
-Issues = "https://github.com/roli-lpci/forgetted/issues"
-Changelog = "https://github.com/roli-lpci/forgetted/blob/main/CHANGELOG.md"
+Repository = "https://github.com/hermes-labs-ai/forgetted"
+Documentation = "https://github.com/hermes-labs-ai/forgetted#readme"
+Issues = "https://github.com/hermes-labs-ai/forgetted/issues"
+Changelog = "https://github.com/hermes-labs-ai/forgetted/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["forgetted*"]
