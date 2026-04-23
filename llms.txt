@@ -25,7 +25,7 @@ Stack: Python 3.9+, zero required dependencies. Optional mem0 adapter.
 - [Adapters](forgetted/adapters/): PersistenceAdapter ABC + file_write + mem0 adapters
 
 ## Testing
-- 97 tests + 2 xfail covering triggers, guard, checkpoint, cleaner, session, adapters, adversarial vectors
+- 99 tests + 2 xfail covering triggers, guard, checkpoint, cleaner, session, adapters, adversarial vectors
 
 ## Optional
 - [License](LICENSE): Apache 2.0

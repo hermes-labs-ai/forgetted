@@ -171,7 +171,7 @@ Like git: you branch, but you never merge back. The conversation exists in conte
 
 ## Tested
 
-97 tests including an adversarial suite:
+99 tests including an adversarial suite:
 - ✅ Write blocking (open w/a/x/wb/r+, symlinks, binary)
 - ✅ Trigger detection (zero false positives on "forgot password", "forgetful", etc.)
 - ✅ Adapter error isolation (one failing adapter doesn't break others)

@@ -37,7 +37,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-97 tests + 2 xfail. Test files:
+99 tests + 2 xfail. Test files:
 - `test_forgetted.py` — core module tests (triggers, guard, checkpoint, cleaner)
 - `test_session.py` — ForgetSession orchestrator tests
 - `test_adapters.py` — FileWriteAdapter and Mem0Adapter tests

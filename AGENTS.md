@@ -7,7 +7,7 @@ Stack: Python 3.9+, zero required dependencies.
 ## Commands
 ```bash
 pip install -e ".[dev]"          # Install with dev deps
-python -m pytest tests/ -v       # Run tests (97 + 2 xfail)
+python -m pytest tests/ -v       # Run tests (99 + 2 xfail)
 ```
 
 ## Project Structure
@@ -26,7 +26,7 @@ forgetted/
 ```
 
 ## Testing
-- 97 tests + 2 xfail
+- 99 tests + 2 xfail
 - Run full suite before any PR that touches core logic
 
 ## Boundaries
