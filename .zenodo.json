@@ -4,7 +4,11 @@
   "upload_type": "software",
   "license": "Apache-2.0",
   "creators": [
-    { "name": "Bosch Rodriguez, Rolando", "orcid": "0009-0005-4896-1112", "affiliation": "Hermes Labs" }
+    {
+      "name": "Bosch Rodriguez, Rolando",
+      "orcid": "0009-0005-4896-1112",
+      "affiliation": "Hermes Labs"
+    }
   ],
   "keywords": [
     "AI reliability",
