@@ -2,6 +2,7 @@
   "title": "forgetted: mid-conversation incognito mode for AI agents",
   "description": "forgetted is an AI reliability tool that gives AI agents selective memory governance: it wraps the agent's persistence layer so that, inside a context-managed window, reads still work and the agent keeps full context but writes to memory files, session logs, deliverables, and vector stores silently vanish and are cleaned up on exit. It addresses the silent failure mode where agents persist sensitive or experimental context that should never have been written, providing verification by effect (no-op file handles and post-window cleanup) rather than relying on a prompt instruction.",
   "upload_type": "software",
+  "version": "0.2.1",
   "license": "Apache-2.0",
   "creators": [
     {
