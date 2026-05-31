@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "forgetted: mid-conversation incognito mode for AI agents"
+abstract: >-
+  forgetted is an AI reliability tool that gives AI agents selective memory
+  governance: inside a context-managed window the agent keeps full read context
+  but writes to memory files, session logs, deliverables, and vector stores
+  silently vanish and are cleaned up on exit. It treats non-persistence as a
+  memory-governance primitive enforced in software, not as a prompt instruction.
+type: software
+authors:
+  - family-names: "Bosch Rodriguez"
+    given-names: "Rolando"
+    orcid: "https://orcid.org/0009-0005-4896-1112"
+    affiliation: "Hermes Labs"
+license: Apache-2.0
+repository-code: "https://github.com/hermes-labs-ai/forgetted"
+keywords:
+  - "AI reliability"
+  - "LLM reliability"
+  - "silent failure modes"
+  - "ambient assurance"
+  - "agent memory governance"
+  - "selective non-persistence"
+  - "incognito mode"
+  - "persistence-layer adapters"
