@@ -25,7 +25,7 @@ Stack: Python 3.9+, zero required dependencies. Optional mem0 adapter.
 - [Adapters](forgetted/adapters/): PersistenceAdapter ABC + file_write + mem0 adapters
 
 ## Testing
-- 99 tests + 2 xfail covering triggers, guard, checkpoint, cleaner, session, adapters, adversarial vectors
+- 99 tests (97 pass, 2 xfail) covering triggers, guard, checkpoint, cleaner, session, adapters, and adversarial vectors. The 2 xfail cases document known write-bypass paths (e.g. Path.write_text / Path.write_bytes do not go through builtins.open).
 
 ## Optional
 - [License](LICENSE): Apache 2.0
