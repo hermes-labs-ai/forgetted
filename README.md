@@ -13,10 +13,12 @@
 
 ---
 
-**forgetted** gives AI agents selective memory governance. One line of code, and your agent keeps full context but writes nothing to memory.
+**forgetted** is a small Python library that gives AI agents selective memory governance: inside a context-managed window the agent keeps full read access but its writes to memory files, session logs, deliverables, and (optionally) a vector store silently vanish and are cleaned up on exit. One `with` block, and your agent keeps full context but persists nothing.
 
-> Traditional incognito is dumb: no past, no future, fully isolated.
-> **forgetted** gives you: full continuity + selective non-persistence.
+> Traditional incognito is all-or-nothing: no past, no future, fully isolated.
+> **forgetted** keeps full read continuity while making the write side non-persistent for the duration of a window.
+
+Part of the [Hermes Labs reliability stack](https://github.com/hermes-labs-ai).
 
 ```python
 from forgetted import ForgetSession
@@ -165,28 +167,42 @@ Built-in detection for natural-language triggers:
 
 This is not a UX toggle. It's a **memory governance primitive**.
 
-Like git: you branch, but you never merge back. The conversation exists in context but is never written to the agent's persistent state. After the window closes, it's as if it never happened.
+Like git: you branch, but you never merge back. The conversation exists in context, and the writes it would normally make to the agent's persistent state are intercepted instead. After the window closes, a normal read of the agent's memory and logs shows no trace of it — within the scope described in [Limitations](#limitations).
 
 > *"I want context… but I don't want consequences."*
 
 ## Tested
 
-99 tests including an adversarial suite:
-- ✅ Write blocking (open w/a/x/wb/r+, symlinks, binary)
-- ✅ Trigger detection (zero false positives on "forgot password", "forgetful", etc.)
+99 tests (97 pass, 2 xfail) including an adversarial suite:
+- ✅ Write blocking via `builtins.open` (modes `w`/`a`/`x`/`wb`/`r+`, symlinks resolved, binary)
+- ✅ Trigger detection (no false positive on "I'm so forgetful today", etc.)
 - ✅ Adapter error isolation (one failing adapter doesn't break others)
-- ✅ Exception safety (cleanup runs even if conversation crashes)
+- ✅ Exception safety (cleanup runs even if the conversation crashes)
 - ✅ Idempotency (double-start, stop-before-start, double-stop all safe)
 
-Known limitations are [documented as xfail tests](tests/test_adversarial.py) — not hidden.
+Known bypasses (writes that do **not** go through `builtins.open`, such as `Path.write_text`/`write_bytes` and `os.open`) are documented as [xfail tests](tests/test_adversarial.py) rather than hidden. See [Limitations](#limitations) below.
 
 ## Threat Model
 
-**What forgetted blocks:** Everything the agent controls — memory files, vector DB writes, session logs, deliverables.
+**What forgetted blocks:** Writes that go through `builtins.open` to protected workspace paths (`memory/`, `DELIVERABLES.md`, `*.jsonl`), plus mem0 `add`/`update` when the Mem0Adapter is registered.
 
-**What forgetted does NOT block:** LLM API provider logs, network telemetry, OS-level forensics. That's not the point.
+**What forgetted does NOT block:** LLM API provider logs, network telemetry, OS-level forensics, and writes that bypass `builtins.open` (see [Limitations](#limitations)). It is a convenience layer for agent-controlled persistence, not a security or containment boundary.
 
-**The guarantee:** *"If someone looks through the agent's memory and logs, they won't find what you forgetted."*
+**What you can rely on, within that scope:** writes routed through `builtins.open` to protected paths are intercepted and return no-op handles, so a normal read of the agent's memory and logs afterward does not surface what happened inside the window. This is enforcement by effect (no-op handles + post-window cleanup), not a prompt instruction.
+
+## Limitations
+
+forgetted is a software convenience layer, not a security boundary. Grounded in the code and the [xfail test suite](tests/test_adversarial.py), it does **not**:
+
+- **Catch writes that bypass `builtins.open`.** `Path.write_text`, `Path.write_bytes`, `os.open`, C-extension writes, and subprocesses write directly and are not intercepted. These are documented as xfail tests.
+- **Erase data written before the window opened.** It governs writes during the window only; pre-existing memory is untouched.
+- **Block reads.** By design — the agent keeps full read context.
+- **Intercept writes outside the declared workspace path.**
+- **Block network calls, API calls, or external tool use.**
+- **Support concurrent or nested forgetted sessions on the same workspace** — overlapping windows can break the guard's restore chain (xfail tests).
+- **Defend against an adversary inspecting LLM-provider logs, network traffic, or raw disk forensics.**
+
+For the full machine-readable behavior contract, see [`INTENT.md`](INTENT.md).
 
 If forgetted is useful to you, please [star the repo](https://github.com/hermes-labs-ai/forgetted) — it helps others find it.
 
