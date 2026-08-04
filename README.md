@@ -25,7 +25,8 @@ from forgetted import ForgetSession
 
 with ForgetSession("/path/to/workspace"):
     agent.chat("this conversation never happened")
-# ↑ No trace in memory, logs, or vector DB. Agent resumes normally.
+# ↑ Writes through `builtins.open` to protected workspace paths do not persist.
+#    Add an adapter for mem0 or another persistence layer; reads still work.
 ```
 
 ## Why?
