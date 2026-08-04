@@ -1,6 +1,7 @@
 """Tests for persistence adapters."""
 
 import shutil
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -132,6 +133,42 @@ class TestMem0Adapter:
         adapter.disable()
         adapter.enable()
         adapter.cleanup()  # should not raise
+
+    def test_cleanup_deletes_new_timezone_aware_iso_memories_only(self):
+        from forgetted.adapters.mem0 import Mem0Adapter
+
+        boundary = datetime(2026, 7, 31, 12, 0, tzinfo=timezone.utc)
+        mock_memory = self._make_mock_memory()
+        mock_memory.get_all.return_value = {
+            "results": [
+                {"id": "old", "created_at": (boundary - timedelta(seconds=1)).isoformat()},
+                {"id": "new-offset", "created_at": (boundary + timedelta(seconds=1)).isoformat()},
+                {"id": "new-z", "created_at": "2026-07-31T12:00:02Z"},
+                {"id": "ambiguous", "created_at": "2026-07-31T12:00:03"},
+                {"id": "invalid", "created_at": "not-a-timestamp"},
+            ]
+        }
+        adapter = Mem0Adapter(mock_memory)
+        adapter._window_start = boundary.timestamp()
+
+        adapter.cleanup()
+
+        assert [call.args[0] for call in mock_memory.delete.call_args_list] == ["new-offset", "new-z"]
+
+    def test_cleanup_keeps_support_for_epoch_timestamps(self):
+        from forgetted.adapters.mem0 import Mem0Adapter
+
+        mock_memory = self._make_mock_memory()
+        mock_memory.get_all.return_value = [
+            {"id": "old", "created_at": 99.0},
+            {"id": "new", "created_at": 101.0},
+        ]
+        adapter = Mem0Adapter(mock_memory)
+        adapter._window_start = 100.0
+
+        adapter.cleanup()
+
+        mock_memory.delete.assert_called_once_with("new")
 
     def test_idempotent_disable(self):
         from forgetted.adapters.mem0 import Mem0Adapter

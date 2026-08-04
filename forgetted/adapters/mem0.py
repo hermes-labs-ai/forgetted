@@ -10,11 +10,31 @@ Requires: ``pip install mem0ai`` (optional dependency).
 
 import logging
 import time
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional
 
 from .base import PersistenceAdapter
 
 logger = logging.getLogger(__name__)
+
+
+def _created_at_epoch(value: Any) -> Optional[float]:
+    """Return an epoch for unambiguous mem0 timestamps, else ``None``."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+
+    normalized = value.strip()
+    if normalized.endswith(("Z", "z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.timestamp()
 
 
 class Mem0Adapter(PersistenceAdapter):
@@ -108,11 +128,8 @@ class Mem0Adapter(PersistenceAdapter):
             memories = all_memories if isinstance(all_memories, list) else all_memories.get("results", [])
             deleted = 0
             for mem in memories:
-                created = mem.get("created_at", 0)
-                # mem0 uses ISO timestamps or epoch — handle both
-                if isinstance(created, str):
-                    continue  # Skip string timestamps for now — timestamp comparison is fragile
-                if created >= self._window_start:
+                created = _created_at_epoch(mem.get("created_at"))
+                if created is not None and created >= self._window_start:
                     try:
                         self._memory.delete(mem["id"])
                         deleted += 1
