@@ -25,7 +25,7 @@ from .guard import ForgetGuard
 from .session import ForgetSession
 from .trigger import TRIGGERS, is_forget_trigger
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Hermes Labs"
 __all__ = [
     "create_checkpoint",
