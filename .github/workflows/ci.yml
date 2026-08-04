@@ -17,3 +17,27 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: python -m pytest tests/ -v
+  package:
+    name: Package integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build and validate distribution artifacts
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check dist/*
+          python -m venv .package-smoke
+          . .package-smoke/bin/activate
+          python -m pip install --no-deps dist/*.whl
+          python - <<'PY'
+          import forgetted
+          import tomllib
+          from pathlib import Path
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          assert forgetted.__version__ == version
+          PY
