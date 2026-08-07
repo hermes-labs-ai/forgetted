@@ -51,11 +51,28 @@ pip install forgetted
 ### Simple (file-level protection)
 
 ```python
+import tempfile
+from pathlib import Path
+
 from forgetted import ForgetSession
 
-# Everything inside is forgetted — writes to memory/, logs, deliverables vanish
-with ForgetSession("/path/to/agent/workspace"):
-    agent.chat("tell me about the secret project")
+workspace = Path(tempfile.mkdtemp())
+(workspace / "memory").mkdir()
+notes = workspace / "memory" / "notes.md"
+
+# Inside the window, writes through `open()` to protected paths
+# (memory/, DELIVERABLES.md, *.jsonl) silently vanish. Reads are never blocked.
+with ForgetSession(str(workspace)):
+    with open(notes, "w") as f:
+        f.write("this conversation never happened")
+
+print(notes.exists())  # False — the write was intercepted
+
+# After the window, writes persist normally again.
+with open(notes, "w") as f:
+    f.write("this one is remembered")
+
+print(notes.read_text())  # this one is remembered
 ```
 
 ### With vector DB protection
