@@ -90,6 +90,33 @@ session.start(checkpoint_summary="Discussing API design")
 session.stop()  # re-enables all layers, cleans up
 ```
 
+### With framework-native read-only switches
+
+`HindsightAdapter` and `CrewAIAdapter` don't patch anything — they flip the
+framework's own switch for the duration of the window and restore the exact
+prior value on exit (a memory already set read-only stays that way).
+
+```python
+from forgetted import ForgetSession
+from forgetted.adapters import CrewAIAdapter, HindsightAdapter
+
+session = ForgetSession(
+    workspace="/path/to/workspace",
+    adapters=[
+        HindsightAdapter(hindsight_client),
+        CrewAIAdapter(crew_memory),
+    ],
+)
+session.start()
+# ... conversation happens with full context, zero persistence ...
+session.stop()  # restores each layer's prior setting
+```
+
+`HindsightAdapter` requires a Hindsight client version that exposes
+`retain_suspended`; `CrewAIAdapter` requires a CrewAI memory that exposes
+`read_only`. Each raises `AttributeError` at construction if the attribute is
+missing, so an unsupported version fails loudly instead of silently not blocking.
+
 ### Trigger detection (for chat agents)
 
 ```python
