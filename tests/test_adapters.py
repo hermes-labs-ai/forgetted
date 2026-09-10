@@ -3,11 +3,13 @@
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
 from forgetted.adapters.file_write import FileWriteAdapter
+from forgetted.adapters.native import CrewAIAdapter, HindsightAdapter
 
 SCRATCH_ROOT = Path("/tmp/incognito-test/scratch")
 
@@ -189,3 +191,63 @@ class TestMem0Adapter:
         adapter.disable()
         adapter.enable()
         adapter.enable()  # no error
+
+
+@pytest.fixture(params=[(HindsightAdapter, "retain_suspended", "hindsight"), (CrewAIAdapter, "read_only", "crewai")])
+def native_adapter(request):
+    adapter_type, flag, name = request.param
+    target = SimpleNamespace(**{flag: False})
+    return adapter_type(target), target, flag, name
+
+
+def test_native_adapter_disables_and_restores(native_adapter):
+    adapter, target, flag, name = native_adapter
+    assert adapter.name == name
+    assert not adapter.is_active
+
+    adapter.disable()
+    adapter.disable()
+    assert getattr(target, flag) is True
+    assert adapter.is_active
+
+    adapter.enable()
+    adapter.enable()
+    assert getattr(target, flag) is False
+    assert not adapter.is_active
+
+
+def test_native_adapter_preserves_preexisting_true(native_adapter):
+    adapter, target, flag, _ = native_adapter
+    setattr(target, flag, True)
+
+    adapter.disable()
+    adapter.enable()
+
+    assert getattr(target, flag) is True
+
+
+def test_native_adapters_restore_after_last_owner_exits(native_adapter):
+    first, target, flag, _ = native_adapter
+    second = type(first)(target)
+
+    first.disable()
+    second.disable()
+    first.enable()
+    assert getattr(target, flag) is True
+
+    second.enable()
+    assert getattr(target, flag) is False
+
+
+def test_native_adapter_rejects_unsupported_version(native_adapter):
+    adapter, _, flag, _ = native_adapter
+    with pytest.raises(AttributeError, match=flag):
+        type(adapter)(SimpleNamespace())
+
+
+def test_native_adapter_cleanup_is_noop(native_adapter):
+    adapter, target, flag, _ = native_adapter
+    adapter.disable()
+    adapter.enable()
+    adapter.cleanup()
+    assert getattr(target, flag) is False
