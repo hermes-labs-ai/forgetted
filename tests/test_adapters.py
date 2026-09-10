@@ -1,6 +1,7 @@
 """Tests for persistence adapters."""
 
 import shutil
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,6 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from forgetted.adapters import native
 from forgetted.adapters.file_write import FileWriteAdapter
 from forgetted.adapters.native import CrewAIAdapter, HindsightAdapter
 
@@ -197,7 +199,9 @@ class TestMem0Adapter:
 def native_adapter(request):
     adapter_type, flag, name = request.param
     target = SimpleNamespace(**{flag: False})
-    return adapter_type(target), target, flag, name
+    adapter = adapter_type(target)
+    yield adapter, target, flag, name
+    native._leases.pop(adapter._lease_key, None)
 
 
 def test_native_adapter_disables_and_restores(native_adapter):
@@ -251,3 +255,88 @@ def test_native_adapter_cleanup_is_noop(native_adapter):
     adapter.enable()
     adapter.cleanup()
     assert getattr(target, flag) is False
+
+
+class _BarrierLock:
+    """Instrumented stand-in for ``native._leases_lock``.
+
+    The first ``parties`` acquirers are parked at a barrier *before* the real
+    lock is taken, so every caller is guaranteed to have entered ``disable`` or
+    ``enable`` before any of them commits a state change. That makes a check or
+    assignment placed outside the critical section race deterministically,
+    without sleeps.
+    """
+
+    def __init__(self, parties: int):
+        self._lock = threading.RLock()
+        self._barrier = threading.Barrier(parties)
+        self._gate = threading.Lock()
+        self._remaining = parties
+
+    def acquire(self, blocking: bool = True, timeout: float = -1):
+        with self._gate:
+            park = self._remaining > 0
+            if park:
+                self._remaining -= 1
+        if park:
+            self._barrier.wait(timeout=5)
+        return self._lock.acquire(blocking, timeout)
+
+    def release(self) -> None:
+        self._lock.release()
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.release()
+
+
+def _run_concurrently(call, parties):
+    """Run ``call`` on ``parties`` threads; return whatever each one raised."""
+    errors = []
+
+    def worker():
+        try:
+            call()
+        except Exception as exc:  # the unsynchronized race surfaces as KeyError
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(parties)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+    assert not any(thread.is_alive() for thread in threads), "concurrent lifecycle call deadlocked"
+    return errors
+
+
+def test_native_adapter_concurrent_disable_takes_a_single_lease(native_adapter, monkeypatch):
+    adapter, target, flag, _ = native_adapter
+    monkeypatch.setattr(native, "_leases_lock", _BarrierLock(2))
+
+    errors = _run_concurrently(adapter.disable, 2)
+
+    assert errors == []
+    assert adapter.is_active
+    assert getattr(target, flag) is True
+    assert native._leases[adapter._lease_key][2] == 1
+
+    adapter.enable()
+    assert not adapter.is_active
+    assert getattr(target, flag) is False
+    assert adapter._lease_key not in native._leases
+
+
+def test_native_adapter_concurrent_enable_releases_a_single_lease(native_adapter, monkeypatch):
+    adapter, target, flag, _ = native_adapter
+    adapter.disable()
+    monkeypatch.setattr(native, "_leases_lock", _BarrierLock(2))
+
+    errors = _run_concurrently(adapter.enable, 2)
+
+    assert errors == []
+    assert not adapter.is_active
+    assert getattr(target, flag) is False
+    assert adapter._lease_key not in native._leases
