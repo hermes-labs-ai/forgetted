@@ -34,9 +34,9 @@ class _NativeFlagAdapter(PersistenceAdapter):
         return self._active
 
     def disable(self) -> None:
-        if self._active:
-            return
         with _leases_lock:
+            if self._active:
+                return
             lease = _leases.get(self._lease_key)
             if lease is None:
                 previous = getattr(self._target, self.flag)
@@ -45,19 +45,19 @@ class _NativeFlagAdapter(PersistenceAdapter):
             else:
                 target, previous, owners = lease
                 _leases[self._lease_key] = (target, previous, owners + 1)
-        self._active = True
+            self._active = True
 
     def enable(self) -> None:
-        if not self._active:
-            return
         with _leases_lock:
+            if not self._active:
+                return
             target, previous, owners = _leases[self._lease_key]
             if owners == 1:
                 setattr(target, self.flag, previous)
                 del _leases[self._lease_key]
             else:
                 _leases[self._lease_key] = (target, previous, owners - 1)
-        self._active = False
+            self._active = False
 
     def cleanup(self) -> None:
         """No sweep is needed because the framework refused writes."""
