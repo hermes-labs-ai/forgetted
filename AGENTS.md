@@ -7,7 +7,7 @@ Stack: Python 3.9+, zero required dependencies.
 ## Commands
 ```bash
 pip install -e ".[dev]"          # Install with dev deps
-python -m pytest tests/ -v       # Run tests (99 tests (97 pass, 2 xfail))
+python -m pytest tests/ -v       # Run tests (116 tests: 113 pass, 3 xfail)
 ```
 
 ## Project Structure
@@ -23,10 +23,11 @@ forgetted/
     base.py        — PersistenceAdapter ABC
     file_write.py  — Wraps ForgetGuard as adapter
     mem0.py        — mem0 semantic memory adapter
+    native.py      — HindsightAdapter / CrewAIAdapter (framework-native read-only flags)
 ```
 
 ## Testing
-- 99 tests (97 pass, 2 xfail) — the 2 xfail cases document known write-bypass paths
+- 116 tests (113 pass, 3 xfail) — the xfail cases document known bypass paths (Path.write_text/write_bytes, out-of-order stop of overlapping sessions)
 - Run full suite before any PR that touches core logic
 
 ## Boundaries

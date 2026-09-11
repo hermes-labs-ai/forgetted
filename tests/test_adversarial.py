@@ -248,9 +248,10 @@ class TestSessionEdgeCases:
         session.start()
         session.stop()
 
-    def test_nested_sessions_break_guard(self):
-        """Nested ForgetSessions share builtins.open — inner stop() restores
-        the original, breaking the outer guard. Known limitation."""
+    def test_nested_sessions_lifo_restores_outer_guard(self):
+        """Nested ForgetSessions chain builtins.open: the inner guard saves the
+        outer guard's patched open as its "original", so an inner stop()
+        hands control back to the outer guard rather than the real open."""
         ws1 = SCRATCH_ROOT / "ws1"
         ws2 = SCRATCH_ROOT / "ws2"
         for ws in (ws1, ws2):
@@ -261,15 +262,15 @@ class TestSessionEdgeCases:
         with ForgetSession(str(ws1)):
             with ForgetSession(str(ws2)):
                 pass
-            # After inner stops, does outer still block?
+            # After inner stops, outer must still block.
             with open(target, "w") as f:
                 f.write("after inner closed")
 
-        if target.exists():
-            pytest.xfail("KNOWN: nested sessions break — inner stop restores original open")
+        assert not target.exists(), "outer guard must survive inner stop (LIFO)"
 
-    def test_concurrent_sessions_same_workspace(self):
-        """Two sessions on same workspace — second stop may break first."""
+    def test_overlapping_sessions_lifo_stop_keeps_guard(self):
+        """Two sessions on the same workspace stopped in LIFO order keep the
+        first guard active until its own stop()."""
         s1 = ForgetSession(str(SCRATCH_ROOT))
         s2 = ForgetSession(str(SCRATCH_ROOT))
         s1.start()
@@ -281,8 +282,29 @@ class TestSessionEdgeCases:
             f.write("after s2 stopped")
         s1.stop()
 
-        if target.exists():
-            pytest.xfail("KNOWN: concurrent sessions on same workspace break guard chain")
+        assert not target.exists(), "s1 guard must survive s2 stop (LIFO)"
+
+    def test_overlapping_sessions_out_of_order_stop_breaks_guard(self):
+        """Stopping the OUTER session first (non-LIFO) is a known limitation:
+        the outer guard restores the real open while the inner guard is still
+        active, so the inner window silently stops blocking."""
+        import builtins
+        real_open = builtins.open
+        s1 = ForgetSession(str(SCRATCH_ROOT))
+        s2 = ForgetSession(str(SCRATCH_ROOT))
+        target = SCRATCH_ROOT / "memory" / "out_of_order.md"
+        try:
+            s1.start()
+            s2.start()
+            s1.stop()  # non-LIFO: restores real open underneath s2
+            with open(target, "w") as f:
+                f.write("after s1 stopped")
+            leaked = target.exists()
+            s2.stop()
+        finally:
+            builtins.open = real_open  # never leave a stale guard behind for other tests
+        if leaked:
+            pytest.xfail("KNOWN: out-of-order stop of overlapping sessions breaks the guard chain")
 
     def test_guard_restored_after_stop(self):
         """builtins.open must be the real open after guard stops."""
