@@ -19,7 +19,8 @@ forgetted/
 └── adapters/
     ├── base.py          # PersistenceAdapter ABC
     ├── file_write.py    # Wraps ForgetGuard as adapter
-    └── mem0.py          # mem0 semantic memory adapter
+    ├── mem0.py          # mem0 semantic memory adapter (method patch on add/update)
+    └── native.py        # HindsightAdapter / CrewAIAdapter — flip the framework's own read-only flag
 ```
 
 ## Key design decisions
@@ -37,21 +38,23 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-99 tests + 2 xfail. Test files:
+116 tests (113 pass, 3 xfail). Test files:
 - `test_forgetted.py` — core module tests (triggers, guard, checkpoint, cleaner)
 - `test_session.py` — ForgetSession orchestrator tests
-- `test_adapters.py` — FileWriteAdapter and Mem0Adapter tests
+- `test_adapters.py` — FileWriteAdapter, Mem0Adapter, HindsightAdapter and CrewAIAdapter tests (fake objects, no framework installed)
 - `test_adversarial.py` — bypass vectors, false positives, edge cases
 
-## Known limitations (documented as xfail tests)
+## Known limitations (documented in `test_adversarial.py`)
 
-- `Path.write_text()` / `Path.write_bytes()` bypass builtins.open (uses os.open internally)
-- `os.open()` + `os.write()` bypass (low-level file descriptors)
-- `subprocess` / shell commands bypass (outside Python)
-- `rename()` into protected paths bypass (filesystem operation)
-- Nested ForgetSessions break (inner stop restores original open)
+- `Path.write_text()` / `Path.write_bytes()` bypass builtins.open (uses os.open internally) — xfail
+- `os.open()` + `os.write()` bypass (low-level file descriptors) — asserted as a bypass
+- `subprocess` / shell commands bypass (outside Python) — asserted as a bypass
+- `rename()` into protected paths bypass (filesystem operation) — asserted as a bypass
+- Overlapping ForgetSessions stopped out of order (outer stopped before inner) break the
+  guard chain — xfail. Properly nested (LIFO) sessions work: the inner guard hands
+  `builtins.open` back to the outer guard, not to the real open.
 
-These are documented in `test_adversarial.py` and are acceptable for the threat model:
+These are acceptable for the threat model:
 "Don't let this shape my agent's memory" — not "prevent all possible file I/O."
 
 ## Style

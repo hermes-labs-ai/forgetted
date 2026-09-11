@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- `HindsightAdapter` and `CrewAIAdapter` (`forgetted.adapters.native`): drive each framework's own read-only flag (`retain_suspended` / `read_only`) for the window and restore the prior value on exit (#30).
+### Fixed
+- Native adapter `disable()`/`enable()` transitions are atomic under concurrent calls (#31).
+### Changed
+- Test suite documents that nested (LIFO) sessions work; the remaining known limitation is an out-of-order stop of overlapping sessions.
+
 ## [0.2.2] - 2026-08-04
 ### Fixed
 - Bind PyPI publishing to the release tag and validate source and built-package integrity before upload.

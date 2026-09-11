@@ -117,6 +117,16 @@ session.stop()  # restores each layer's prior setting
 `read_only`. Each raises `AttributeError` at construction if the attribute is
 missing, so an unsupported version fails loudly instead of silently not blocking.
 
+Version status (verified 2026-09-11): `crewai` 1.15.21 on PyPI exposes
+`Memory.read_only`, so `CrewAIAdapter` blocks `remember()`/`remember_many()` with a
+released CrewAI; that release still writes access times on `recall()` and allows
+`update()` under `read_only` (fixed upstream in the still-open
+[crewAIInc/crewAI#7367](https://github.com/crewAIInc/crewAI/pull/7367)). No released
+`hindsight-client` (latest 0.9.2) exposes `retain_suspended` yet — it is added by
+[vectorize-io/hindsight#4285](https://github.com/vectorize-io/hindsight/pull/4285),
+which is still open, so `HindsightAdapter` raises `AttributeError` against every
+published client until that lands.
+
 ### Trigger detection (for chat agents)
 
 ```python
@@ -135,6 +145,8 @@ if is_forget_trigger(user_message):  # "/forget", "off the record", etc.
 | Deliverables / audit logs | `builtins.open` patch | ✅ Blocked |
 | Session logs (`*.jsonl`) | Blocked + deleted on exit | ✅ Blocked |
 | mem0 / semantic memory | Method patch on `add`/`update` | ✅ Blocked |
+| Hindsight | Framework-native `retain_suspended` flag | ⏳ Pending upstream — needs a `hindsight-client` release containing [vectorize-io/hindsight#4285](https://github.com/vectorize-io/hindsight/pull/4285) |
+| CrewAI memory | Framework-native `read_only` flag | ✅ Blocked |
 | Any custom persistence | Write your own adapter | 🔌 Extensible |
 
 ## How It Works
@@ -145,7 +157,9 @@ if is_forget_trigger(user_message):  # "/forget", "off the record", etc.
 
 2. **`Mem0Adapter`** (opt-in) — patches `memory.add()` and `memory.update()` during the window. Post-window cleanup deletes any memories that leaked through.
 
-3. **`ForgetSession`** orchestrates everything: checkpoint → disable adapters → run conversation → enable adapters → cleanup → delete session log.
+3. **`HindsightAdapter`** / **`CrewAIAdapter`** (opt-in) — flip the framework's own read-only switch (`retain_suspended` / `read_only`) for the window and restore the exact prior value on exit. No patching, no cleanup sweep needed.
+
+4. **`ForgetSession`** orchestrates everything: checkpoint → disable adapters → run conversation → enable adapters → cleanup → delete session log.
 
 Reads are **never** blocked. The agent has full context — it just can't write new context.
 
@@ -218,7 +232,7 @@ Like git: you branch, but you never merge back. The conversation exists in conte
 
 ## Tested
 
-99 tests (97 pass, 2 xfail) including an adversarial suite:
+116 tests (113 pass, 3 xfail) including an adversarial suite:
 - ✅ Write blocking via `builtins.open` (modes `w`/`a`/`x`/`wb`/`r+`, symlinks resolved, binary)
 - ✅ Trigger detection (no false positive on "I'm so forgetful today", etc.)
 - ✅ Adapter error isolation (one failing adapter doesn't break others)
@@ -244,7 +258,7 @@ forgetted is a software convenience layer, not a security boundary. Grounded in 
 - **Block reads.** By design — the agent keeps full read context.
 - **Intercept writes outside the declared workspace path.**
 - **Block network calls, API calls, or external tool use.**
-- **Support concurrent or nested forgetted sessions on the same workspace** — overlapping windows can break the guard's restore chain (xfail tests).
+- **Support overlapping forgetted sessions stopped out of order.** Properly nested (LIFO) sessions work, but stopping an outer session before an inner one restores the real `open` underneath the still-active inner window (xfail test).
 - **Defend against an adversary inspecting LLM-provider logs, network traffic, or raw disk forensics.**
 
 For the full machine-readable behavior contract, see [`INTENT.md`](INTENT.md).
