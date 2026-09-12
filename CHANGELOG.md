@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-09-11
 ### Added
 - `HindsightAdapter` and `CrewAIAdapter` (`forgetted.adapters.native`): drive each framework's own read-only flag (`retain_suspended` / `read_only`) for the window and restore the prior value on exit (#30).
 ### Fixed
