@@ -1,0 +1,17 @@
+{
+  "@context": "https://w3id.org/codemeta/3.1",
+  "@type": "SoftwareSourceCode",
+  "name": "forgetted",
+  "description": "Selective memory governance for AI agents: inside a context-managed window, agent writes to memory files, session logs, deliverables, and (optionally) a vector store are intercepted and vanish on exit, while reads keep working throughout.",
+  "codeRepository": "https://github.com/hermes-labs-ai/forgetted",
+  "version": "0.3.0",
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python >=3.9",
+  "identifier": [
+    "https://pypi.org/project/forgetted/0.3.0/"
+  ],
+  "author": [{"@type": "Person", "givenName": "Rolando", "familyName": "Bosch Rodriguez", "identifier": "https://orcid.org/0009-0005-4896-1112"}],
+  "url": "https://pypi.org/project/forgetted/0.3.0/",
+  "keywords": ["AI reliability", "LLM reliability", "silent failure modes", "ambient assurance", "agent memory governance", "selective non-persistence", "incognito mode", "persistence-layer adapters"]
+}
