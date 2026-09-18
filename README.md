@@ -56,23 +56,24 @@ from pathlib import Path
 
 from forgetted import ForgetSession
 
-workspace = Path(tempfile.mkdtemp())
-(workspace / "memory").mkdir()
-notes = workspace / "memory" / "notes.md"
+with tempfile.TemporaryDirectory() as workspace_str:
+    workspace = Path(workspace_str)
+    (workspace / "memory").mkdir()
+    notes = workspace / "memory" / "notes.md"
 
-# Inside the window, writes through `open()` to protected paths
-# (memory/, DELIVERABLES.md, *.jsonl) silently vanish. Reads are never blocked.
-with ForgetSession(str(workspace)):
+    # Inside the window, writes through `open()` to protected paths
+    # (memory/, DELIVERABLES.md, *.jsonl) silently vanish. Reads are never blocked.
+    with ForgetSession(str(workspace)):
+        with open(notes, "w") as f:
+            f.write("this conversation never happened")
+
+    print(notes.exists())  # False — the write was intercepted
+
+    # After the window, writes persist normally again.
     with open(notes, "w") as f:
-        f.write("this conversation never happened")
+        f.write("this one is remembered")
 
-print(notes.exists())  # False — the write was intercepted
-
-# After the window, writes persist normally again.
-with open(notes, "w") as f:
-    f.write("this one is remembered")
-
-print(notes.read_text())  # this one is remembered
+    print(notes.read_text())  # this one is remembered
 ```
 
 ### With vector DB protection
