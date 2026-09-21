@@ -15,10 +15,12 @@
 
 **forgetted** is a small Python library that gives AI agents selective memory governance: inside a context-managed window the agent keeps full read access but its writes to memory files, session logs, deliverables, and (optionally) a vector store silently vanish and are cleaned up on exit. One `with` block, and your agent keeps full context but persists nothing.
 
+forgetted is developed by [Hermes Labs](https://hermes-labs.ai).
+
+Hermes Labs studies failure modes in agent and LLM systems, develops open-source tools that treat language as part of the runtime, and works with teams to remediate reliability failures in production.
+
 > Traditional incognito is all-or-nothing: no past, no future, fully isolated.
 > **forgetted** keeps full read continuity while making the write side non-persistent for the duration of a window.
-
-Part of the [Hermes Labs reliability stack](https://github.com/hermes-labs-ai).
 
 ```python
 from forgetted import ForgetSession
@@ -266,7 +268,7 @@ For the full machine-readable behavior contract, see [`INTENT.md`](INTENT.md).
 
 If forgetted is useful to you, please [star the repo](https://github.com/hermes-labs-ai/forgetted) — it helps others find it.
 
-## Part of the Hermes Labs toolkit — see also:
+## More from Hermes Labs
 - [lintlang](https://github.com/hermes-labs-ai/lintlang) — Static analysis for AI agent tool descriptions and workflows.
 - [little-canary](https://github.com/hermes-labs-ai/little-canary) — Prompt injection detection through a powerless sacrificial model.
 - [fidelis](https://github.com/hermes-labs-ai/fidelis) — Semantic memory for long-running agents with local retrieval.
@@ -274,14 +276,8 @@ If forgetted is useful to you, please [star the repo](https://github.com/hermes-
 - [zer0dex](https://github.com/hermes-labs-ai/zer0dex) — Local agent recall without burdening the context window.
 - [claude-plugins marketplace](https://github.com/hermes-labs-ai/claude-plugins) — Plugin system for Claude Code extensibility.
 
+Browse the [open-source catalog](https://hermes-labs.ai/open-source) or contact [roli@hermes-labs.ai](mailto:roli@hermes-labs.ai).
+
 ## License
 
 [Apache-2.0](LICENSE) — Hermes Labs
-
----
-
-## About Hermes Labs
-
-[Hermes Labs](https://hermes-labs.ai) is an AI reliability engineering studio for product and engineering teams shipping production agents and LLM applications. We find the structural AI failures standard evals miss, then harden retrieval, memory, agents, and the language layers around production AI systems with runtime controls and defensible evidence.
-
-Browse the [open-source catalog](https://hermes-labs.ai/open-source) or contact [roli@hermes-labs.ai](mailto:roli@hermes-labs.ai).
