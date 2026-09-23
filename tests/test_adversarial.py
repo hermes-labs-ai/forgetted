@@ -37,23 +37,32 @@ def clean_scratch():
 
 
 class TestWriteBypass:
-    def test_pathlib_write_text_bypasses_guard(self):
-        """Path.write_text() uses os.open internally — bypasses builtins.open."""
+    def test_pathlib_write_text_blocked(self):
+        """Path.write_text() is blocked when its resolved target is protected."""
         target = SCRATCH_ROOT / "memory" / "pathlib_bypass.md"
-        with ForgetGuard(str(SCRATCH_ROOT)):
-            target.write_text("pathlib bypass attempt")
-        bypass_occurred = target.exists()
-        if bypass_occurred:
-            pytest.xfail("KNOWN: Path.write_text() bypasses builtins.open patch")
+        guard = ForgetGuard(str(SCRATCH_ROOT))
+        with guard:
+            target.write_text("pathlib write attempt")
+        assert not target.exists()
+        assert guard.blocked_count == 1
 
-    def test_pathlib_write_bytes_bypasses_guard(self):
-        """Path.write_bytes() — same low-level path as write_text."""
+    def test_pathlib_write_bytes_blocked(self):
+        """Path.write_bytes() is blocked when its resolved target is protected."""
         target = SCRATCH_ROOT / "memory" / "pathlib_bytes.md"
-        with ForgetGuard(str(SCRATCH_ROOT)):
+        guard = ForgetGuard(str(SCRATCH_ROOT))
+        with guard:
             target.write_bytes(b"bytes bypass attempt")
-        bypass_occurred = target.exists()
-        if bypass_occurred:
-            pytest.xfail("KNOWN: Path.write_bytes() bypasses builtins.open patch")
+        assert not target.exists()
+        assert guard.blocked_count == 1
+
+    def test_pathlib_writes_outside_protected_paths_still_work(self):
+        text_target = SCRATCH_ROOT / "ordinary.txt"
+        bytes_target = SCRATCH_ROOT / "ordinary.bin"
+        with ForgetGuard(str(SCRATCH_ROOT)):
+            text_target.write_text("ordinary text")
+            bytes_target.write_bytes(b"ordinary bytes")
+        assert text_target.read_text() == "ordinary text"
+        assert bytes_target.read_bytes() == b"ordinary bytes"
 
     def test_os_open_bypasses_guard(self):
         """os.open() + os.write() uses file descriptors — known bypass."""
@@ -307,10 +316,22 @@ class TestSessionEdgeCases:
             pytest.xfail("KNOWN: out-of-order stop of overlapping sessions breaks the guard chain")
 
     def test_guard_restored_after_stop(self):
-        """builtins.open must be the real open after guard stops."""
+        """Open and pathlib methods must all be restored after stop."""
         import builtins
         original = builtins.open
+        original_write_text = Path.write_text
+        original_write_bytes = Path.write_bytes
         guard = ForgetGuard(str(SCRATCH_ROOT))
         guard.start()
         guard.stop()
         assert builtins.open is original
+        assert Path.write_text is original_write_text
+        assert Path.write_bytes is original_write_bytes
+
+    def test_pathlib_methods_restored_after_exception(self):
+        original_write_text = Path.write_text
+        original_write_bytes = Path.write_bytes
+        with pytest.raises(RuntimeError, match="test exception"), ForgetGuard(str(SCRATCH_ROOT)):
+            raise RuntimeError("test exception")
+        assert Path.write_text is original_write_text
+        assert Path.write_bytes is original_write_bytes
