@@ -1,6 +1,8 @@
-<p align="center">
+<div align="center">
   <h1 align="center">🫥 forgetted</h1>
-  <p align="center"><strong>Your AI agent remembers everything. Now it doesn't have to.</strong></p>
+  <p>A small Python library that gives AI agents selective memory governance: keep full read access while writes to protected persistence layers vanish inside a context-managed window.</p>
+  <p>forgetted is developed by <a href="https://hermes-labs.ai">Hermes Labs</a>.</p>
+  <p>Hermes Labs is an agentic infrastructure company building the reliability layer for autonomous systems.</p>
   <p align="center">
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/v/forgetted" alt="PyPI"></a>
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/dm/forgetted" alt="Downloads"></a>
@@ -9,15 +11,13 @@
     <a href="https://pypi.org/project/forgetted/"><img src="https://img.shields.io/pypi/pyversions/forgetted" alt="Python"></a>
     <a href="https://github.com/hermes-labs-ai/forgetted/actions/workflows/ci.yml"><img src="https://github.com/hermes-labs-ai/forgetted/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   </p>
-</p>
+</div>
 
 ---
 
+**Your AI agent remembers everything. Now it doesn't have to.**
+
 **forgetted** is a small Python library that gives AI agents selective memory governance: inside a context-managed window the agent keeps full read access but its writes to memory files, session logs, deliverables, and (optionally) a vector store silently vanish and are cleaned up on exit. One `with` block, and your agent keeps full context but persists nothing.
-
-forgetted is developed by [Hermes Labs](https://hermes-labs.ai).
-
-Hermes Labs studies failure modes in agent and LLM systems, develops open-source tools that treat language as part of the runtime, and works with teams to remediate reliability failures in production.
 
 > Traditional incognito is all-or-nothing: no past, no future, fully isolated.
 > **forgetted** keeps full read continuity while making the write side non-persistent for the duration of a window.
