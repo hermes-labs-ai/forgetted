@@ -95,9 +95,9 @@ session.stop()  # re-enables all layers, cleans up
 
 ### With framework-native read-only switches
 
-`HindsightAdapter` and `CrewAIAdapter` don't patch anything — they flip the
-framework's own switch for the duration of the window and restore the exact
-prior value on exit (a memory already set read-only stays that way).
+`HindsightAdapter` and `CrewAIAdapter` don't patch framework methods. Hindsight
+uses the client's task-local `suspend_retains()` context manager; CrewAI's adapter
+sets and restores its `read_only` flag.
 
 ```python
 from forgetted import ForgetSession
@@ -115,20 +115,19 @@ session.start()
 session.stop()  # restores each layer's prior setting
 ```
 
-`HindsightAdapter` requires a Hindsight client version that exposes
-`retain_suspended`; `CrewAIAdapter` requires a CrewAI memory that exposes
-`read_only`. Each raises `AttributeError` at construction if the attribute is
-missing, so an unsupported version fails loudly instead of silently not blocking.
+`HindsightAdapter` requires a Hindsight client exposing `suspend_retains()`;
+`CrewAIAdapter` requires a CrewAI memory exposing `read_only`. Each raises
+`AttributeError` at construction if its API is missing, so an unsupported
+version fails loudly instead of silently not blocking.
 
-Version status (verified 2026-09-11): `crewai` 1.15.21 on PyPI exposes
+CrewAI status (verified 2026-09-11): `crewai` 1.15.21 on PyPI exposes
 `Memory.read_only`, so `CrewAIAdapter` blocks `remember()`/`remember_many()` with a
 released CrewAI; that release still writes access times on `recall()` and allows
 `update()` under `read_only` (fixed upstream in the still-open
-[crewAIInc/crewAI#7367](https://github.com/crewAIInc/crewAI/pull/7367)). No released
-`hindsight-client` (latest 0.9.2) exposes `retain_suspended` yet — it is added by
-[vectorize-io/hindsight#4285](https://github.com/vectorize-io/hindsight/pull/4285),
-which is still open, so `HindsightAdapter` raises `AttributeError` against every
-published client until that lands.
+[crewAIInc/crewAI#7367](https://github.com/crewAIInc/crewAI/pull/7367)).
+`hindsight-client` 0.10.1 includes the task-local `suspend_retains()` context
+manager added in [vectorize-io/hindsight#4285](https://github.com/vectorize-io/hindsight/pull/4285)
+(merged upstream Sep 15, 2026 and released to PyPI Sep 21, 2026).
 
 ### Trigger detection (for chat agents)
 
@@ -148,7 +147,7 @@ if is_forget_trigger(user_message):  # "/forget", "off the record", etc.
 | Deliverables / audit logs | `builtins.open` patch | ✅ Blocked |
 | Session logs (`*.jsonl`) | Blocked + deleted on exit | ✅ Blocked |
 | mem0 / semantic memory | Method patch on `add`/`update` | ✅ Blocked |
-| Hindsight | Framework-native `retain_suspended` flag | ⏳ Pending upstream — needs a `hindsight-client` release containing [vectorize-io/hindsight#4285](https://github.com/vectorize-io/hindsight/pull/4285) |
+| Hindsight | Task-local `suspend_retains()` context manager | ✅ Available in `hindsight-client` 0.10.1+ |
 | CrewAI memory | Framework-native `read_only` flag | ✅ Blocked |
 | Any custom persistence | Write your own adapter | 🔌 Extensible |
 
@@ -160,7 +159,7 @@ if is_forget_trigger(user_message):  # "/forget", "off the record", etc.
 
 2. **`Mem0Adapter`** (opt-in) — patches `memory.add()` and `memory.update()` during the window. Post-window cleanup deletes any memories that leaked through.
 
-3. **`HindsightAdapter`** / **`CrewAIAdapter`** (opt-in) — flip the framework's own read-only switch (`retain_suspended` / `read_only`) for the window and restore the exact prior value on exit. No patching, no cleanup sweep needed.
+3. **`HindsightAdapter`** / **`CrewAIAdapter`** (opt-in) — enter the client's task-local `suspend_retains()` scope or set CrewAI's `read_only` flag for the window, then exit the scope or restore the flag. No patching or cleanup sweep is needed.
 
 4. **`ForgetSession`** orchestrates everything: checkpoint → disable adapters → run conversation → enable adapters → cleanup → delete session log.
 

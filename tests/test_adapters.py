@@ -2,6 +2,7 @@
 
 import shutil
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ import pytest
 from forgetted.adapters import native
 from forgetted.adapters.file_write import FileWriteAdapter
 from forgetted.adapters.native import CrewAIAdapter, HindsightAdapter
+from forgetted.session import ForgetSession
 
 SCRATCH_ROOT = Path("/tmp/incognito-test/scratch")
 
@@ -195,7 +197,7 @@ class TestMem0Adapter:
         adapter.enable()  # no error
 
 
-@pytest.fixture(params=[(HindsightAdapter, "retain_suspended", "hindsight"), (CrewAIAdapter, "read_only", "crewai")])
+@pytest.fixture(params=[(CrewAIAdapter, "read_only", "crewai")])
 def native_adapter(request):
     adapter_type, flag, name = request.param
     target = SimpleNamespace(**{flag: False})
@@ -247,6 +249,83 @@ def test_native_adapter_rejects_unsupported_version(native_adapter):
     adapter, _, flag, _ = native_adapter
     with pytest.raises(AttributeError, match=flag):
         type(adapter)(SimpleNamespace())
+
+
+class _FakeHindsight:
+    def __init__(self):
+        self.suspension_depth = 0
+
+    @contextmanager
+    def suspend_retains(self):
+        self.suspension_depth += 1
+        try:
+            yield
+        finally:
+            self.suspension_depth -= 1
+
+
+def test_hindsight_adapter_enters_and_exits_suspend_retains_idempotently():
+    target = _FakeHindsight()
+    adapter = HindsightAdapter(target)
+
+    adapter.disable()
+    adapter.disable()
+    assert adapter.is_active
+    assert target.suspension_depth == 1
+
+    adapter.enable()
+    adapter.enable()
+    assert not adapter.is_active
+    assert target.suspension_depth == 0
+
+
+def test_hindsight_adapters_support_nested_scopes_on_one_client():
+    target = _FakeHindsight()
+    outer = HindsightAdapter(target)
+    inner = HindsightAdapter(target)
+
+    outer.disable()
+    inner.disable()
+    assert target.suspension_depth == 2
+
+    inner.enable()
+    assert target.suspension_depth == 1
+    outer.enable()
+    assert target.suspension_depth == 0
+
+
+def test_hindsight_adapter_exits_scope_after_exception_and_can_restart():
+    target = _FakeHindsight()
+    adapter = HindsightAdapter(target)
+
+    with pytest.raises(RuntimeError, match="stop"), ForgetSession(
+        str(SCRATCH_ROOT), adapters=[adapter]
+    ):
+        assert target.suspension_depth == 1
+        raise RuntimeError("stop")
+    assert not adapter.is_active
+    assert target.suspension_depth == 0
+
+    adapter.disable()
+    assert target.suspension_depth == 1
+    adapter.enable()
+    assert target.suspension_depth == 0
+
+
+def test_hindsight_adapter_requires_context_manager_api():
+    with pytest.raises(AttributeError, match="suspend_retains"):
+        HindsightAdapter(SimpleNamespace(retain_suspended=False))
+
+
+def test_hindsight_adapter_with_released_client_needs_no_server():
+    hindsight_client = pytest.importorskip("hindsight_client")
+    client = hindsight_client.Hindsight(base_url="http://127.0.0.1:1")
+    adapter = HindsightAdapter(client)
+
+    adapter.disable()
+    assert adapter.is_active
+    adapter.enable()
+    assert not adapter.is_active
 
 
 def test_native_adapter_cleanup_is_noop(native_adapter):
