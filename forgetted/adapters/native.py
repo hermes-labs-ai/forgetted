@@ -64,10 +64,56 @@ class _NativeFlagAdapter(PersistenceAdapter):
 
 
 class HindsightAdapter(_NativeFlagAdapter):
-    """Suspend retains while preserving Hindsight recall and reflect."""
+    """Enter Hindsight's task-local retain suspension for the active window.
 
-    flag = "retain_suspended"
+    ``Hindsight.suspend_retains()`` is a synchronous context manager. Keeping
+    its manager instance lets ``enable()`` exit the exact scope entered by
+    ``disable()``, which is required for ContextVar token cleanup.
+    """
+
     adapter_name = "hindsight"
+
+    def __init__(self, target: Any):
+        suspend_retains = getattr(target, "suspend_retains", None)
+        if not callable(suspend_retains):
+            raise AttributeError(
+                f"{type(self).__name__} requires {type(target).__name__}.suspend_retains(); "
+                "upgrade to hindsight-client 0.10.1 or newer"
+            )
+        self._target = target
+        self._suspension = None
+        self._active = False
+        self._lock = RLock()
+
+    @property
+    def is_active(self) -> bool:
+        with self._lock:
+            return self._active
+
+    def disable(self) -> None:
+        with self._lock:
+            if self._active:
+                return
+            suspension = self._target.suspend_retains()
+            suspension.__enter__()
+            self._suspension = suspension
+            self._active = True
+
+    def enable(self) -> None:
+        with self._lock:
+            if not self._active:
+                return
+            suspension = self._suspension
+            try:
+                # ForgetSession calls enable() from its finally/stop path; the
+                # Hindsight context manager only needs exit to reset its token.
+                suspension.__exit__(None, None, None)
+            finally:
+                self._suspension = None
+                self._active = False
+
+    def cleanup(self) -> None:
+        """No sweep is needed because Hindsight suppressed retains in-scope."""
 
 
 class CrewAIAdapter(_NativeFlagAdapter):

@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- `HindsightAdapter` now enters and exits the released client's task-local `suspend_retains()` context manager instead of expecting a `retain_suspended` boolean (#34).
 
 ## [0.3.0] - 2026-09-11
 ### Added
