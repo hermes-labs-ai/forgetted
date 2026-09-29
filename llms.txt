@@ -25,7 +25,7 @@ Stack: Python 3.9+, zero required dependencies. Optional mem0, Hindsight and Cre
 - [Adapters](forgetted/adapters/): PersistenceAdapter ABC + file_write, mem0, and native (Hindsight/CrewAI) adapters
 
 ## Testing
-- 116 tests (113 pass, 3 xfail) covering triggers, guard, checkpoint, cleaner, session, adapters, and adversarial vectors. The xfail cases document known bypass paths (Path.write_text / Path.write_bytes do not go through builtins.open; overlapping sessions stopped out of order break the guard chain).
+- 116 tests (114 pass, 1 skipped, 1 xfail) covering triggers, guard, checkpoint, cleaner, session, adapters, and adversarial vectors. Path.write_text / Path.write_bytes to protected paths are blocked; os.open writes are a tested known bypass; the one xfail documents that overlapping sessions stopped out of order break the guard chain.
 
 ## Optional
 - [License](LICENSE): Apache 2.0

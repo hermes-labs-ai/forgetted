@@ -234,14 +234,14 @@ Like git: you branch, but you never merge back. The conversation exists in conte
 
 ## Tested
 
-116 tests (113 pass, 3 xfail) including an adversarial suite:
+116 tests (114 pass, 1 skipped, 1 xfail) including an adversarial suite:
 - ✅ Write blocking via `builtins.open` (modes `w`/`a`/`x`/`wb`/`r+`, symlinks resolved, binary)
 - ✅ Trigger detection (no false positive on "I'm so forgetful today", etc.)
 - ✅ Adapter error isolation (one failing adapter doesn't break others)
 - ✅ Exception safety (cleanup runs even if the conversation crashes)
 - ✅ Idempotency (double-start, stop-before-start, double-stop all safe)
 
-Known bypasses (writes that do **not** go through `builtins.open`, such as `Path.write_text`/`write_bytes` and `os.open`) are documented as [xfail tests](tests/test_adversarial.py) rather than hidden. See [Limitations](#limitations) below.
+`Path.write_text`/`write_bytes` to protected paths are blocked. Known bypasses (writes that go through neither `builtins.open` nor those pathlib helpers, such as `os.open`) are pinned by [adversarial tests](tests/test_adversarial.py) rather than hidden. See [Limitations](#limitations) below.
 
 ## Threat Model
 
@@ -255,7 +255,7 @@ Known bypasses (writes that do **not** go through `builtins.open`, such as `Path
 
 forgetted is a software convenience layer, not a security boundary. Grounded in the code and the [xfail test suite](tests/test_adversarial.py), it does **not**:
 
-- **Catch writes that bypass `builtins.open`.** `Path.write_text`, `Path.write_bytes`, `os.open`, C-extension writes, and subprocesses write directly and are not intercepted. These are documented as xfail tests.
+- **Catch writes that bypass `builtins.open`.** `os.open`, C-extension writes, and subprocesses write directly and are not intercepted (`os.open` is pinned as a known bypass in the adversarial tests; `Path.write_text`/`write_bytes` to protected paths are blocked).
 - **Erase data written before the window opened.** It governs writes during the window only; pre-existing memory is untouched.
 - **Block reads.** By design — the agent keeps full read context.
 - **Intercept writes outside the declared workspace path.**
